@@ -15,7 +15,7 @@
 */
 
 //! This crate allows you to use to work with DIDs and zero knowledge proof VCs on Trust and Trace.
-//! For this purpose two [`VadePlugin`] implementations are exported: [`VadeEvan`] and [`SubstrateDidResolverEvan`].
+//! For this purpose two [`VadePlugin`] implementations are exported: [`VadeEvan`] and [`VadeEvanSubstrate`].
 //!
 //! ## VadeEvan
 //!
@@ -37,7 +37,7 @@
 //! - [`vc_zkp_verify_proof`]
 //! - [`run_custom_function`]
 //!
-//! ## SubstrateDidResolverEvan
+//! ## VadeEvanSubstrate
 //!
 //! Supports creating, updating and getting DIDs and DID documents on substrate, therefore supports:
 //!
@@ -51,11 +51,12 @@
 //!
 //! ```rust
 //! use vade_evan::{
-//!     resolver::{ResolverConfig, SubstrateDidResolverEvan},
 //!     signing::{LocalSigner, Signer},
+//!     ResolverConfig,
+//!     VadeEvanSubstrate,
 //! };
 //! let signer: Box<dyn Signer> = Box::new(LocalSigner::new());
-//! let resolver = SubstrateDidResolverEvan::new(ResolverConfig {
+//! let resolver = VadeEvanSubstrate::new(ResolverConfig {
 //!     signer,
 //!     target: "127.0.0.1".to_string(),
 //! });
@@ -147,17 +148,17 @@
 //! | --------------- |:-------:| -------- |
 //! | default         |     x   | (default feature set) |
 //! | default_native  |         | similar to `default`, but uses `portable_native` instead of `portable`  |
-//! | did             |     x   | enables DID functionalities - [`SubstrateDidResolverEvan`] |
+//! | did             |     x   | enables DID functionalities - [`VadeEvanSubstrate`] |
 //! | vc-zkp          |     x   | enables VC functionalities - [`VadeEvan`] |
 //! | portable        |     x   | build with optimizations to run natively, not compatible with `wasm` feature |
 //! | portable_native |         | same as `portable` but uses native OpenSSL implementation, requires using an [ursa fork](https://github.com/evannetwork/ursa/tree/portable-native), not compatible with `wasm` feature |
 //! | wasm            |         | build with optimizations to run as web assembly, not compatible with `native` |
 //! | cli             |         | enables command line interface |
 //!
-//! [`did_create`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_create
-//! [`did_resolve`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_resolve
-//! [`did_update`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_update
-//! [`SubstrateDidResolverEvan`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html
+//! [`did_create`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.VadeEvanSubstrate.html#method.did_create
+//! [`did_resolve`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.VadeEvanSubstrate.html#method.did_resolve
+//! [`did_update`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.VadeEvanSubstrate.html#method.did_update
+//! [`VadeEvanSubstrate`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.VadeEvanSubstrate.html
 //! [`Vade`]: https://docs.rs/vade_evan/*/vade/struct.Vade.html
 //! [`VadePlugin`]: https://docs.rs/vade_evan/*/vade/trait.VadePlugin.html
 //! [`VadeEvan`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html
@@ -179,27 +180,9 @@
 pub extern crate log;
 
 // --------- mod
-// shared
 pub mod signing;
-pub mod utils;
+mod utils;
 
 // did
-#[cfg(feature = "did")]
-pub mod resolver;
-
-// vc-zkp
-#[cfg(feature = "vc-zkp")]
-pub mod application;
-#[cfg(feature = "vc-zkp")]
-pub mod crypto;
-#[cfg(feature = "vc-zkp")]
-mod vade_evan;
-
-// wasm only
-#[cfg(target_arch = "wasm32")]
-pub mod wasm_lib;
-
-// --------- use
-// vc-zkp
-#[cfg(feature = "vc-zkp")]
-pub use self::vade_evan::*;
+mod vade_evan_substrate;
+pub use self::vade_evan_substrate::*;

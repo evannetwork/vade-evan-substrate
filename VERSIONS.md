@@ -8,6 +8,8 @@
 
 ### Deprecations
 
+- split off substrate logic from original `vade-evan` project into it's this project
+
 ## Version 0.0.8
 
 ### Fixes

@@ -15,7 +15,6 @@
 */
 
 use crate::{
-    compose_extrinsic,
     signing::Signer,
     utils::extrinsic::{
         events::{DispatchError, EventsDecoder, Phase, RawEvent, RuntimeEvent, SystemEvent},
@@ -1058,4 +1057,163 @@ fn get_nonce() -> u64 {
     let now_timestamp: u64 = Utc::now().timestamp_nanos() as u64;
 
     rng.gen_range(0, 100) + now_timestamp
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use regex::Regex;
+    use std::{env, error::Error, sync::Once};
+    use crate::signing::{LocalSigner, Signer};
+
+    static INIT: Once = Once::new();
+
+    const METHOD_REGEX: &str = r#"^(.*):0x(.*)$"#;
+
+    const SIGNER_1_DID: &str =
+        "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
+    const SIGNER_1_PRIVATE_KEY: &str =
+        "dfcdcb6d5d09411ae9cbe1b0fd9751ba8803dd4b276d5bf9488ae4ede2669106";
+    const DEFAULT_VADE_EVAN_SUBSTRATE_IP: &str = "13.69.59.185";
+
+    fn convert_did_to_substrate_did(did: &str) -> Result<(u8, String), Box<dyn Error>> {
+        let re = Regex::new(METHOD_REGEX)?;
+        let result = re.captures(&did);
+        if let Some(caps) = result {
+            match &caps[1] {
+                "did:evan" => Ok((1, caps[2].to_string())),
+                "did:evan:testcore" => Ok((2, caps[2].to_string())),
+                "did:evan:zkp" => Ok((0, caps[2].to_string())),
+                _ => Err(Box::from(format!("unknown DID format; {}", did))),
+            }
+        } else {
+            Err(Box::from(format!("could not parse DID; {}", did)))
+        }
+    }
+
+    fn enable_logging() {
+        INIT.call_once(|| {
+            env_logger::try_init().ok();
+        });
+    }
+
+    fn get_signer() -> Box<dyn Signer> {
+        Box::new(LocalSigner::new())
+    }
+
+    #[tokio::test]
+    async fn can_whitelist_identity() -> Result<(), Box<dyn Error>> {
+        enable_logging();
+        let (method, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
+        let signer: Box<dyn Signer> = get_signer();
+        whitelist_identity(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            method,
+            hex::decode(substrate_did)?,
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_create_a_did() -> Result<(), Box<dyn Error>> {
+        enable_logging();
+        let (_, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
+        let signer: Box<dyn Signer> = get_signer();
+        let did = create_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            hex::decode(substrate_did)?,
+            None,
+        )
+        .await?;
+
+        println!("DID: {:?}", did);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_add_payload_to_did() -> Result<(), Box<dyn Error>> {
+        enable_logging();
+        let (_, converted_identity) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
+        let converted_identity_vec = hex::decode(converted_identity)?;
+        let signer: Box<dyn Signer> = get_signer();
+        let did = create_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            converted_identity_vec.clone(),
+            None,
+        )
+        .await?;
+        add_payload_to_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            "Hello_World".to_string(),
+            did.clone(),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            converted_identity_vec.clone(),
+        )
+        .await?;
+        let _detail_count = get_payload_count_for_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            did.clone(),
+        )
+        .await?;
+        let did_detail1 = get_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            did.clone(),
+        )
+        .await?;
+        update_payload_in_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            0u32,
+            "Hello_World_update".to_string(),
+            did.clone(),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            converted_identity_vec.clone(),
+        )
+        .await?;
+        let did_detail2 = get_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            did.clone(),
+        )
+        .await?;
+        update_payload_in_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            0u32,
+            "Hello_World".to_string(),
+            did.clone(),
+            SIGNER_1_PRIVATE_KEY.to_string(),
+            &signer,
+            converted_identity_vec.clone(),
+        )
+        .await?;
+        let did_detail3 = get_did(
+            env::var("VADE_EVAN_SUBSTRATE_IP")
+                .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
+            did.clone(),
+        )
+        .await?;
+
+        assert_eq!(&did_detail1, &did_detail3);
+        assert_ne!(&did_detail1, &did_detail2);
+        assert_ne!(&did_detail2, &did_detail3);
+
+        Ok(())
+    }
 }
