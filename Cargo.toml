@@ -22,31 +22,31 @@ wasm-opt = ["-Oz", "--enable-mutable-globals"]
 
 [dependencies]
 async-trait = "0.1.31"
+blake2-rfc = { version = "0.2.18" }
+byteorder = { version = "1.3.4" }
 env_logger = "0.7.1"
+futures = { version = "0.3.5" }
 hex = "0.4.2"
 libsecp256k1 = "0.3.5"
 log = "0.4.8"
+parity_scale_codec = { package ="parity-scale-codec", version = "1.3.0" }
+rand = "0.7.3"
+regex = { version = "1.3.7" }
 reqwest = { version = "0.10.4", default-features= false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.53", features = ["preserve_order", "raw_value"] }
 sha2 = "0.8.1"
 sha3 = "0.8.2"
-uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
-vade = "0.0.8"
-# vade = { path = "../vade" }
-# vade = { git = "https://github.com/evannetwork/vade", branch = "develop" }
-blake2-rfc = { version = "0.2.18" }
-byteorder = { version = "1.3.4" }
-futures = { version = "0.3.5" }
-parity_scale_codec = { package ="parity-scale-codec", version = "1.3.0" }
-regex = { version = "1.3.7" }
 sp-core = { version = "2.0.0-rc4", default-features = false }
 sp-runtime-interface = { version = "2.0.0-rc4", default-features = false, features = ["disable_target_static_assertions" ]}
 sp-std = { version = "2.0.0-rc4", default-features = false }
 sp-storage = { version = "2.0.0-rc4", default-features = false }
 thiserror = { version = "1.0" }
 twox-hash = { version = "1.5.0" }
-rand = "0.7.3"
+uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
+vade = "0.0.8"
+# vade = { git = "https://github.com/evannetwork/vade", branch = "develop" }
+# vade = { path = "../vade" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 chrono = { version = "0.4.11",  default-features = false, features=["wasm-bindgen", "clock", "js-sys"] }
