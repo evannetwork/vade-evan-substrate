@@ -17,4 +17,3 @@
 #[macro_use]
 pub mod extrinsic;
 pub mod substrate;
-pub mod utils;

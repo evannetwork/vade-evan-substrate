@@ -58,32 +58,6 @@ use chrono::Utc;
 
 const SUBSTRATE_TIMEOUT: u64 = 60;
 
-pub async fn get_storage_value(
-    url: &str,
-    storage_prefix: &str,
-    storage_key_name: &str,
-) -> Result<String, Box<dyn Error>> {
-    let mut bytes = twox_128(&storage_prefix.as_bytes()).to_vec();
-    bytes.extend(&twox_128(&storage_key_name.as_bytes())[..]);
-    let hex_string = format!("0x{}", hex::encode(bytes));
-    let json = json_req("state_getStorage", &hex_string.to_string(), 1);
-    let client = reqwest::Client::new();
-    let body = client
-        .post(&format!("http://{}:9933", url).to_string())
-        .header("Content-Type", "application/json")
-        .body(json.to_string())
-        .send()
-        .await?
-        .text()
-        .await?;
-    let parsed: Value = serde_json::from_str(&body)?;
-    print!("{}", &body);
-    Ok(parsed["result"]
-        .as_str()
-        .ok_or("could not get storage value")?
-        .to_string())
-}
-
 pub async fn get_storage_map<K: Encode + std::fmt::Debug, V: Decode + Clone>(
     url: &str,
     metadata: Metadata,

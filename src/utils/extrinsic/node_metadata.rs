@@ -36,8 +36,6 @@ pub enum MetadataError {
     ModuleNotFound(String),
     #[error("Module with events not found")]
     ModuleWithEventsNotFound(u8),
-    #[error("Call not found")]
-    CallNotFound(&'static str),
     #[error("Event not found")]
     EventNotFound(u8),
     #[error("Storage not found")]
@@ -67,30 +65,12 @@ impl Metadata {
             .ok_or(MetadataError::ModuleNotFound(name))
     }
 
-    pub fn modules_with_calls(&self) -> impl Iterator<Item = &ModuleWithCalls> {
-        self.modules_with_calls.values()
-    }
-
     pub fn module_with_calls<S>(&self, name: S) -> Result<&ModuleWithCalls, MetadataError>
     where
         S: ToString,
     {
         let name = name.to_string();
         self.modules_with_calls
-            .get(&name)
-            .ok_or(MetadataError::ModuleNotFound(name))
-    }
-
-    pub fn modules_with_events(&self) -> impl Iterator<Item = &ModuleWithEvents> {
-        self.modules_with_events.values()
-    }
-
-    pub fn module_with_events_by_name<S>(&self, name: S) -> Result<&ModuleWithEvents, MetadataError>
-    where
-        S: ToString,
-    {
-        let name = name.to_string();
-        self.modules_with_events
             .get(&name)
             .ok_or(MetadataError::ModuleNotFound(name))
     }
@@ -102,81 +82,11 @@ impl Metadata {
             .ok_or(MetadataError::ModuleWithEventsNotFound(module_index))
     }
 
-    pub fn modules_with_errors(&self) -> impl Iterator<Item = &ModuleWithEvents> {
-        self.modules_with_errors.values()
-    }
-
-    pub fn modules_with_errors_by_name<S>(
-        &self,
-        name: S,
-    ) -> Result<&ModuleWithEvents, MetadataError>
-    where
-        S: ToString,
-    {
-        let name = name.to_string();
-        self.modules_with_errors
-            .get(&name)
-            .ok_or(MetadataError::ModuleNotFound(name))
-    }
-
     pub fn module_with_errors(&self, module_index: u8) -> Result<&ModuleWithEvents, MetadataError> {
         self.modules_with_errors
             .values()
             .find(|&module| module.index == module_index)
             .ok_or(MetadataError::ModuleWithEventsNotFound(module_index))
-    }
-
-    pub fn print_overview(&self) {
-        let mut string = String::new();
-        for (name, module) in &self.modules {
-            string.push_str(name.as_str());
-            string.push('\n');
-            for storage in module.storage.keys() {
-                string.push_str(" s  ");
-                string.push_str(storage.as_str());
-                string.push('\n');
-            }
-            if let Some(module) = self.modules_with_calls.get(name) {
-                for call in module.calls.keys() {
-                    string.push_str(" c  ");
-                    string.push_str(call.as_str());
-                    string.push('\n');
-                }
-            }
-            if let Some(module) = self.modules_with_events.get(name) {
-                for event in module.events.values() {
-                    string.push_str(" e  ");
-                    string.push_str(event.name.as_str());
-                    string.push('\n');
-                }
-            }
-            if let Some(module) = self.modules_with_errors.get(name) {
-                for event in module.events.values() {
-                    string.push_str(" e  ");
-                    string.push_str(event.name.as_str());
-                    string.push('\n');
-                }
-            }
-        }
-        debug!("{}", string);
-    }
-
-    pub fn print_modules_with_calls(&self) {
-        for m in self.modules_with_calls() {
-            m.print()
-        }
-    }
-
-    pub fn print_modules_with_events(&self) {
-        for m in self.modules_with_events() {
-            m.print()
-        }
-    }
-
-    pub fn print_modules_with_errors(&self) {
-        for m in self.modules_with_errors() {
-            m.print()
-        }
     }
 
     pub fn parse(metadata: RuntimeMetadataPrefixed) -> Result<Self, MetadataError> {
@@ -291,18 +201,6 @@ pub struct ModuleWithCalls {
     pub calls: HashMap<String, u8>,
 }
 
-impl ModuleWithCalls {
-    pub fn print(&self) {
-        debug!(
-            "----------------- Calls for Module: '{}' -----------------\n",
-            self.name
-        );
-        for (name, index) in &self.calls {
-            debug!("Name: {}, index {}", name, index);
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ModuleWithEvents {
     index: u8,
@@ -315,25 +213,10 @@ impl ModuleWithEvents {
         &self.name
     }
 
-    pub fn events(&self) -> impl Iterator<Item = &ModuleEventMetadata> {
-        self.events.values()
-    }
-
     pub fn event(&self, index: u8) -> Result<&ModuleEventMetadata, MetadataError> {
         self.events
             .get(&index)
             .ok_or(MetadataError::EventNotFound(index))
-    }
-
-    pub fn print(&self) {
-        debug!(
-            "----------------- Events for Module: {} -----------------\n",
-            self.name()
-        );
-
-        for e in self.events() {
-            debug!("Name: {:?}, Args: {:?}", e.name, e.arguments);
-        }
     }
 }
 
@@ -347,41 +230,6 @@ pub struct StorageMetadata {
 }
 
 impl StorageMetadata {
-    pub fn get_double_map<K: Encode, Q: Encode, V: Decode + Clone>(
-        &self,
-    ) -> Result<StorageDoubleMap<K, Q, V>, MetadataError> {
-        match &self.ty {
-            StorageEntryType::DoubleMap {
-                hasher,
-                key2_hasher,
-                ..
-            } => {
-                let module_prefix = self.module_prefix.as_bytes().to_vec();
-                let storage_prefix = self.storage_prefix.as_bytes().to_vec();
-                let hasher1 = hasher.to_owned();
-                let hasher2 = key2_hasher.to_owned();
-
-                let default = Decode::decode(&mut &self.default[..])
-                    .map_err(|_| MetadataError::MapValueTypeError)?;
-
-                debug!(
-                    "map for '{}' '{}' has hasher1 {:?} hasher2 {:?}",
-                    self.module_prefix, self.storage_prefix, hasher1, hasher2
-                );
-                Ok(StorageDoubleMap {
-                    _marker: PhantomData,
-                    _marker2: PhantomData,
-                    module_prefix,
-                    storage_prefix,
-                    hasher: hasher1,
-                    key2_hasher: hasher2,
-                    default,
-                })
-            }
-            _ => Err(MetadataError::StorageTypeError),
-        }
-    }
-
     pub fn get_map<K: Encode, V: Decode + Clone>(&self) -> Result<StorageMap<K, V>, MetadataError> {
         match &self.ty {
             StorageEntryType::Map { hasher, .. } => {
@@ -406,34 +254,12 @@ impl StorageMetadata {
             _ => Err(MetadataError::StorageTypeError),
         }
     }
-
-    pub fn get_value(&self) -> Result<StorageValue, MetadataError> {
-        match &self.ty {
-            StorageEntryType::Plain { .. } => {
-                let module_prefix = self.module_prefix.as_bytes().to_vec();
-                let storage_prefix = self.storage_prefix.as_bytes().to_vec();
-                Ok(StorageValue {
-                    module_prefix,
-                    storage_prefix,
-                })
-            }
-            _ => Err(MetadataError::StorageTypeError),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
 pub struct StorageValue {
     module_prefix: Vec<u8>,
     storage_prefix: Vec<u8>,
-}
-
-impl StorageValue {
-    pub fn key(&self) -> StorageKey {
-        let mut bytes = substrate::twox_128(&self.module_prefix).to_vec();
-        bytes.extend(&substrate::twox_128(&self.storage_prefix)[..]);
-        StorageKey(bytes)
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -452,10 +278,6 @@ impl<K: Encode, V: Decode + Clone> StorageMap<K, V> {
         bytes.extend(key_hash(&key, &self.hasher));
         StorageKey(bytes)
     }
-
-    pub fn default(&self) -> V {
-        self.default.clone()
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -467,20 +289,6 @@ pub struct StorageDoubleMap<K, Q, V> {
     hasher: StorageHasher,
     key2_hasher: StorageHasher,
     default: V,
-}
-
-impl<K: Encode, Q: Encode, V: Decode + Clone> StorageDoubleMap<K, Q, V> {
-    pub fn key(&self, key1: K, key2: Q) -> StorageKey {
-        let mut bytes = substrate::twox_128(&self.module_prefix).to_vec();
-        bytes.extend(&substrate::twox_128(&self.storage_prefix)[..]);
-        bytes.extend(key_hash(&key1, &self.hasher));
-        bytes.extend(key_hash(&key2, &self.key2_hasher));
-        StorageKey(bytes)
-    }
-
-    pub fn default(&self) -> V {
-        self.default.clone()
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -536,23 +344,6 @@ impl FromStr for EventArg {
             }
         } else {
             Ok(EventArg::Primitive(s.to_string()))
-        }
-    }
-}
-
-impl EventArg {
-    /// Returns all primitive types for this EventArg
-    pub fn primitives(&self) -> Vec<String> {
-        match self {
-            EventArg::Primitive(p) => vec![p.clone()],
-            EventArg::Vec(arg) => arg.primitives(),
-            EventArg::Tuple(args) => {
-                let mut primitives = Vec::new();
-                for arg in args {
-                    primitives.extend(arg.primitives())
-                }
-                primitives
-            }
         }
     }
 }
