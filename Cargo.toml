@@ -13,7 +13,7 @@ readme = "README.md"
 keywords = ["did", "ssi"]
 
 [lib]
-name = "vade_evan"
+name = "vade_evan_substrate"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
