@@ -7,7 +7,7 @@
 ## About
 
 This crate allows you to use to work with DIDs Trust and Trace, which runs on evan.network.
-For this purpose a [`VadePlugin`] implementations is exported: [`VadeEvanSubstrate`].
+For this purpose a [`VadePlugin`] implementation is exported: [`VadeEvanSubstrate`].
 
 ## VadeEvanSubstrate
 
