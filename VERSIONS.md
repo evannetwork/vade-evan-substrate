@@ -2,4 +2,4 @@
 
 ## Initial Version
 
-- split off substrate logic from original `vade-evan` project into it's this project
+- split off substrate logic from original `vade-evan` project into this project
