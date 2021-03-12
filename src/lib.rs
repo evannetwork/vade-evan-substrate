@@ -14,30 +14,10 @@
   limitations under the License.
 */
 
-//! This crate allows you to use to work with DIDs and zero knowledge proof VCs on Trust and Trace.
-//! For this purpose two [`VadePlugin`] implementations are exported: [`VadeEvan`] and [`SubstrateDidResolverEvan`].
+//! This crate allows you to use to work with DIDs Trust and Trace, which runs on evan.network.
+//! For this purpose a [`VadePlugin`] implementations is exported: [`VadeEvanSubstrate`].
 //!
-//! ## VadeEvan
-//!
-//! Responsible for working with zero knowledge proof VCs on Trust and Trace.
-//!
-//! Implements the following [`VadePlugin`] functions:
-//!
-//! - [`vc_zkp_create_credential_schema`]
-//! - [`vc_zkp_create_credential_definition`]
-//! - [`vc_zkp_create_credential_proposal`]
-//! - [`vc_zkp_create_credential_offer`]
-//! - [`vc_zkp_request_credential`]
-//! - [`vc_zkp_create_revocation_registry_definition`]
-//! - [`vc_zkp_update_revocation_registry`]
-//! - [`vc_zkp_issue_credential`]
-//! - [`vc_zkp_revoke_credential`]
-//! - [`vc_zkp_request_proof`]
-//! - [`vc_zkp_present_proof`]
-//! - [`vc_zkp_verify_proof`]
-//! - [`run_custom_function`]
-//!
-//! ## SubstrateDidResolverEvan
+//! ## VadeEvanSubstrate
 //!
 //! Supports creating, updating and getting DIDs and DID documents on substrate, therefore supports:
 //!
@@ -50,12 +30,12 @@
 //! As the did resolver instance needs to sign its requests against substrate, a remote endpoint for signing has to be provided. The DID resolver will sign requests for [`did_create`] and [`did_update`]. A signing endpoint has to be passed with the config argument in the constructor, e.g.:
 //!
 //! ```rust
-//! use vade_evan::{
-//!     resolver::{ResolverConfig, SubstrateDidResolverEvan},
+//! use vade_evan_substrate::{
+//!     resolver::{ResolverConfig, VadeEvanSubstrate},
 //!     signing::{LocalSigner, Signer},
 //! };
 //! let signer: Box<dyn Signer> = Box::new(LocalSigner::new());
-//! let resolver = SubstrateDidResolverEvan::new(ResolverConfig {
+//! let resolver = VadeEvanSubstrate::new(ResolverConfig {
 //!     signer,
 //!     target: "127.0.0.1".to_string(),
 //! });
@@ -89,7 +69,7 @@
 //! }
 //! ```
 //!
-//! ## Compiling vade-evan
+//! ## Compiling vade-evan-substrate
 //!
 //! ### "Regular" build
 //!
@@ -99,107 +79,38 @@
 //! cargo build --release
 //! ```
 //!
-//! ### Default Features
-//!
-//! By default features `did`, `native`, and `vc-zkp` are used. So everything included and available for usage in other Rust libraries.
-//!
-//! Features can be omitted. This mostly concerns, the `vc-zkp` feature, as it can be dropped without affecting the `did` functionality. `did` can be omitted as well but will most probably limit usability `vc-zkp` functionalities as this relies on `did` logic for some parts of its logic.
-//!
-//! In short: Use either `did` and `vc-zkp` together (default) or just `did`.
-//!
-//! ### Command Line Interface
-//!
-//! To enable the cli just add the feature `cli` to the feature set:
-//!
-//! ```sh
-//! cargo build --release --features cli
-//! ```
-//!
-//! You can now use the `vade-evan` cli. Get started by having a look at the help shown after calling it with:
-//!
-//! ```sh
-//! ./target/release/vade_evan_cli
-//! ```
-//!
 //! ### WASM
 //!
-//! To compile `vade-evan` for wasm, use wasm pack.
-//!
-//! You can specify to use only `did` feature or to use `did` and `vc-zkp`. The following examples will use both features.
+//! To compile `vade-evan-substrate` for wasm, use wasm pack.
 //!
 //! Also you have to specify whether to build a browser or a nodejs environment.
 //!
 //! nodejs:
 //!
 //! ```sh
-//! wasm-pack build --release --target nodejs -- --no-default-features --features did,vc-zkp,wasm
+//! wasm-pack build --release --target nodejs
 //! ```
 //!
 //! browser:
 //!
 //! ```sh
-//! wasm-pack build --release --target web -- --no-default-features --features did,vc-zkp,wasm
+//! wasm-pack build --release --target web
 //! ```
-//!
-//! ### Features for building
-//!
-//! | feature         | default | contents |
-//! | --------------- |:-------:| -------- |
-//! | default         |     x   | (default feature set) |
-//! | default_native  |         | similar to `default`, but uses `portable_native` instead of `portable`  |
-//! | did             |     x   | enables DID functionalities - [`SubstrateDidResolverEvan`] |
-//! | vc-zkp          |     x   | enables VC functionalities - [`VadeEvan`] |
-//! | portable        |     x   | build with optimizations to run natively, not compatible with `wasm` feature |
-//! | portable_native |         | same as `portable` but uses native OpenSSL implementation, requires using an [ursa fork](https://github.com/evannetwork/ursa/tree/portable-native), not compatible with `wasm` feature |
-//! | wasm            |         | build with optimizations to run as web assembly, not compatible with `native` |
-//! | cli             |         | enables command line interface |
-//!
-//! [`did_create`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_create
-//! [`did_resolve`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_resolve
-//! [`did_update`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html#method.did_update
-//! [`SubstrateDidResolverEvan`]: https://docs.rs/vade_evan/*/vade_evan/resolver/struct.SubstrateDidResolverEvan.html
-//! [`Vade`]: https://docs.rs/vade_evan/*/vade/struct.Vade.html
-//! [`VadePlugin`]: https://docs.rs/vade_evan/*/vade/trait.VadePlugin.html
-//! [`VadeEvan`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html
-//! [`vc_zkp_create_credential_definition`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_create_credential_definition
-//! [`vc_zkp_create_credential_offer`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_create_credential_offer
-//! [`vc_zkp_create_credential_proposal`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_create_credential_proposal
-//! [`vc_zkp_create_credential_schema`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_create_credential_schema
-//! [`vc_zkp_create_revocation_registry_definition`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_create_revocation_registry_definition
-//! [`vc_zkp_issue_credential`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_issue_credential
-//! [`vc_zkp_present_proof`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_present_proof
-//! [`vc_zkp_request_credential`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_request_credential
-//! [`vc_zkp_request_proof`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_request_proof
-//! [`vc_zkp_revoke_credential`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_revoke_credential
-//! [`vc_zkp_update_revocation_registry`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_update_revocation_registry
-//! [`vc_zkp_verify_proof`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.vc_zkp_verify_proof
-//! [`run_custom_function`]: https://docs.rs/vade_evan/*/vade_evan/struct.VadeEvan.html#method.run_custom_function
+
+//! [`did_create`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_create
+//! [`did_resolve`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_resolve
+//! [`did_update`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html#method.did_update
+//! [`VadeEvanSubstrate`]: https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.VadeEvanSubstrate.html
+//! [`Vade`]: https://docs.rs/vade/*/vade/struct.Vade.html
+//! [`VadePlugin`]: https://docs.rs/vade/*/vade/trait.VadePlugin.html
 
 #[macro_use]
 pub extern crate log;
 
 // --------- mod
-// shared
 pub mod signing;
-pub mod utils;
+mod utils;
 
 // did
-#[cfg(feature = "did")]
-pub mod resolver;
-
-// vc-zkp
-#[cfg(feature = "vc-zkp")]
-pub mod application;
-#[cfg(feature = "vc-zkp")]
-pub mod crypto;
-#[cfg(feature = "vc-zkp")]
-mod vade_evan;
-
-// wasm only
-#[cfg(target_arch = "wasm32")]
-pub mod wasm_lib;
-
-// --------- use
-// vc-zkp
-#[cfg(feature = "vc-zkp")]
-pub use self::vade_evan::*;
+mod vade_evan_substrate;
+pub use self::vade_evan_substrate::*;
