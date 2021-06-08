@@ -33,7 +33,6 @@ use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 
 pub mod client;
 
-// TODO: update return value to Result<(), Box<dyn Error>> for proper error handling
 #[cfg(not(target_arch = "wasm32"))]
 pub fn start_rpc_client_thread(
     url: String,
@@ -63,7 +62,6 @@ pub fn start_rpc_client_thread(
     };
 }
 
-// TODO: update return value to Result<(), Box<dyn Error>> for proper error handling
 #[cfg(target_arch = "wasm32")]
 pub fn start_rpc_client_thread(
     url: String,
