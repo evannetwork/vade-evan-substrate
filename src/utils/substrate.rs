@@ -52,6 +52,7 @@ use std::{
     hash::Hasher,
     time::{Duration, Instant},
 };
+use vade::{AsyncResult, ResultAsyncifier};
 
 #[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
@@ -64,7 +65,7 @@ pub async fn get_storage_map<K: Encode + std::fmt::Debug, V: Decode + Clone>(
     storage_prefix: &'static str,
     storage_key_name: &'static str,
     map_key: K,
-) -> Result<Option<V>, Box<dyn Error>> {
+) -> AsyncResult<Option<V>> {
     let storagekey: sp_core::storage::StorageKey = metadata
         .module(storage_prefix)?
         .storage(storage_key_name)?
@@ -105,7 +106,7 @@ pub async fn get_storage_map<K: Encode + std::fmt::Debug, V: Decode + Clone>(
     Ok(None)
 }
 
-pub async fn get_metadata(url: &str) -> Result<Metadata, Box<dyn Error>> {
+pub async fn get_metadata(url: &str) -> AsyncResult<Metadata> {
     let json = json!({
         "method": "state_getMetadata",
         "params": null,
@@ -137,7 +138,7 @@ pub async fn send_extrinsic(
     url: &str,
     xthex_prefixed: String,
     exit_on: XtStatus,
-) -> Result<Option<String>, Box<dyn Error>> {
+) -> AsyncResult<Option<String>> {
     let json = json!({
         "method": "author_submitAndWatchExtrinsic",
         "params": [xthex_prefixed],
@@ -479,10 +480,10 @@ struct UpdatedDid {
 pub async fn create_did(
     url: String,
     private_key: String,
-    signer: &Box<dyn Signer>,
+    signer: &Box<dyn Signer + Send + Sync>,
     identity: Vec<u8>,
     payload: Option<&str>,
-) -> Result<String, Box<dyn Error>> {
+) -> AsyncResult<String> {
     let metadata = get_metadata(url.as_str()).await?;
     let nonce: u64 = get_nonce();
     let (signature, signed_message) = signer
@@ -562,8 +563,8 @@ pub async fn create_did(
 ///
 /// # Returns
 /// * `String` - Content saved behind the DID
-pub async fn get_did(url: String, did: String) -> Result<String, Box<dyn Error>> {
-    let bytes_did_arr = get_did_bytes_array(&did)?;
+pub async fn get_did(url: String, did: String) -> AsyncResult<String> {
+    let bytes_did_arr = get_did_bytes_array(&did).asyncify()?;
     let bytes_did = sp_core::H256::from(bytes_did_arr);
     let metadata = get_metadata(url.as_str()).await?;
     let detail_hash = get_storage_map::<(sp_core::H256, u32), Vec<u8>>(
@@ -601,12 +602,12 @@ pub async fn add_payload_to_did(
     payload: String,
     did: String,
     private_key: String,
-    signer: &Box<dyn Signer>,
+    signer: &Box<dyn Signer + Send + Sync>,
     identity: Vec<u8>,
-) -> Result<(), Box<dyn Error>> {
+) -> AsyncResult<()> {
     let metadata = get_metadata(url.as_str()).await?;
     let did = did.trim_start_matches("0x").to_string();
-    let bytes_did_arr = get_did_bytes_array(&did)?;
+    let bytes_did_arr = get_did_bytes_array(&did).asyncify()?;
     let bytes_did = sp_core::H256::from(bytes_did_arr);
     let bytes_did_string = hex::encode(&bytes_did);
     let nonce: u64 = get_nonce();
@@ -680,11 +681,11 @@ pub async fn update_payload_in_did(
     payload: String,
     did: String,
     private_key: String,
-    signer: &Box<dyn Signer>,
+    signer: &Box<dyn Signer + Send + Sync>,
     identity: Vec<u8>,
-) -> Result<(), Box<dyn Error>> {
+) -> AsyncResult<()> {
     let metadata = get_metadata(url.as_str()).await?;
-    let bytes_did_arr = get_did_bytes_array(&did)?;
+    let bytes_did_arr = get_did_bytes_array(&did).asyncify()?;
     let bytes_did = sp_core::H256::from(bytes_did_arr);
     let nonce: u64 = get_nonce();
     let (signature, signed_message) = signer
@@ -753,10 +754,10 @@ pub async fn update_payload_in_did(
 pub async fn whitelist_identity(
     url: String,
     private_key: String,
-    signer: &Box<dyn Signer>,
+    signer: &Box<dyn Signer + Send + Sync>,
     method: u8,
     identity: Vec<u8>,
-) -> Result<(), Box<dyn Error>> {
+) -> AsyncResult<()> {
     let metadata = get_metadata(url.as_str()).await?;
     let nonce: u64 = get_nonce();
     let (signature, signed_message) = signer
@@ -828,9 +829,9 @@ pub async fn whitelist_identity(
 /// # Arguments
 /// * `url` - Substrate URL
 /// * `did` - DID to retrieve the count for
-pub async fn get_payload_count_for_did(url: String, did: String) -> Result<u32, Box<dyn Error>> {
+pub async fn get_payload_count_for_did(url: String, did: String) -> AsyncResult<u32> {
     let metadata = get_metadata(url.as_str()).await?;
-    let bytes_did_arr = get_did_bytes_array(&did)?;
+    let bytes_did_arr = get_did_bytes_array(&did).asyncify()?;
     let bytes_did = sp_core::H256::from(bytes_did_arr);
     let detail_count = get_storage_map::<sp_core::H256, u32>(
         url.as_str(),
@@ -851,9 +852,9 @@ pub async fn get_payload_count_for_did(url: String, did: String) -> Result<u32, 
 pub async fn is_whitelisted(
     url: String,
     private_key: String,
-    signer: &Box<dyn Signer>,
+    signer: &Box<dyn Signer + Send + Sync>,
     identity: Vec<u8>,
-) -> Result<bool, Box<dyn Error>> {
+) -> AsyncResult<bool> {
     let metadata = get_metadata(url.as_str()).await?;
     let nonce: u64 = get_nonce();
 
@@ -1036,16 +1037,15 @@ fn get_nonce() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::signing::{LocalSigner, Signer};
     use regex::Regex;
     use std::{env, error::Error, sync::Once};
-    use crate::signing::{LocalSigner, Signer};
 
     static INIT: Once = Once::new();
 
     const METHOD_REGEX: &str = r#"^(.*):0x(.*)$"#;
 
-    const SIGNER_1_DID: &str =
-        "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
+    const SIGNER_1_DID: &str = "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
     const SIGNER_1_PRIVATE_KEY: &str =
         "dfcdcb6d5d09411ae9cbe1b0fd9751ba8803dd4b276d5bf9488ae4ede2669106";
     const DEFAULT_VADE_EVAN_SUBSTRATE_IP: &str = "13.69.59.185";
@@ -1071,15 +1071,15 @@ mod tests {
         });
     }
 
-    fn get_signer() -> Box<dyn Signer> {
+    fn get_signer() -> Box<dyn Signer + Send + Sync> {
         Box::new(LocalSigner::new())
     }
 
     #[tokio::test]
-    async fn can_whitelist_identity() -> Result<(), Box<dyn Error>> {
+    async fn can_whitelist_identity() -> AsyncResult<()> {
         enable_logging();
-        let (method, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
-        let signer: Box<dyn Signer> = get_signer();
+        let (method, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID).asyncify()?;
+        let signer: Box<dyn Signer + Send + Sync> = get_signer();
         whitelist_identity(
             env::var("VADE_EVAN_SUBSTRATE_IP")
                 .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
@@ -1093,10 +1093,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn can_create_a_did() -> Result<(), Box<dyn Error>> {
+    async fn can_create_a_did() -> AsyncResult<()> {
         enable_logging();
-        let (_, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
-        let signer: Box<dyn Signer> = get_signer();
+        let (_, substrate_did) = convert_did_to_substrate_did(&SIGNER_1_DID).asyncify()?;
+        let signer: Box<dyn Signer + Send + Sync> = get_signer();
         let did = create_did(
             env::var("VADE_EVAN_SUBSTRATE_IP")
                 .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
@@ -1113,11 +1113,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn can_add_payload_to_did() -> Result<(), Box<dyn Error>> {
+    async fn can_add_payload_to_did() -> AsyncResult<()> {
         enable_logging();
-        let (_, converted_identity) = convert_did_to_substrate_did(&SIGNER_1_DID)?;
+        let (_, converted_identity) = convert_did_to_substrate_did(&SIGNER_1_DID).asyncify()?;
         let converted_identity_vec = hex::decode(converted_identity)?;
-        let signer: Box<dyn Signer> = get_signer();
+        let signer: Box<dyn Signer + Send + Sync> = get_signer();
         let did = create_did(
             env::var("VADE_EVAN_SUBSTRATE_IP")
                 .unwrap_or_else(|_| DEFAULT_VADE_EVAN_SUBSTRATE_IP.to_string()),
