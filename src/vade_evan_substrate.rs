@@ -27,11 +27,10 @@ use crate::utils::substrate::{
     update_payload_in_did,
     whitelist_identity,
 };
-use async_trait::async_trait;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use vade::{AsyncResult, ResultAsyncifier, VadePlugin, VadePluginResultValue};
+use vade::{VadePlugin, VadePluginResultValue, VadeResult};
 
 const EVAN_METHOD: &str = "did:evan";
 const EVAN_METHOD_PREFIX: &str = "did:evan:";
@@ -72,19 +71,19 @@ impl VadeEvanSubstrate {
         VadeEvanSubstrate { config }
     }
 
-    async fn set_did_document(
+    fn set_did_document(
         &self,
         did: &str,
         private_key: &str,
         identity: &str,
         payload: &str,
-    ) -> AsyncResult<Option<String>> {
+    ) -> VadeResult<Option<String>> {
         debug!(
             "setting DID document for did: {}, identity; {}",
             &did, &identity
         );
         let payload_count: u32 =
-            get_payload_count_for_did(self.config.target.clone(), did.to_string()).await?;
+            get_payload_count_for_did(self.config.target.clone(), did.to_string());
         if payload_count > 0 {
             update_payload_in_did(
                 self.config.target.clone(),
@@ -94,8 +93,7 @@ impl VadeEvanSubstrate {
                 private_key.to_string(),
                 &self.config.signer,
                 hex::decode(identity)?,
-            )
-            .await?;
+            );
         } else {
             add_payload_to_did(
                 self.config.target.clone(),
@@ -104,27 +102,24 @@ impl VadeEvanSubstrate {
                 private_key.to_string(),
                 &self.config.signer,
                 hex::decode(identity)?,
-            )
-            .await?;
+            );
         }
         Ok(Some("".to_string()))
     }
 
-    pub async fn is_whitelisted(&self, did: &str, private_key: &str) -> AsyncResult<bool> {
-        let (_, substrate_identity) = convert_did_to_substrate_identity(&did).asyncify()?;
+    pub fn is_whitelisted(&self, did: &str, private_key: &str) -> VadeResult<bool> {
+        let substrate_identity = convert_did_to_substrate_identity(&did)?;
         let substrate_identity_vec = hex::decode(&substrate_identity)?;
         let result = is_whitelisted(
             self.config.target.clone(),
             private_key.to_owned(),
             &self.config.signer,
             substrate_identity_vec,
-        )
-        .await?;
+        );
         Ok(result)
     }
 }
 
-#[async_trait]
 impl VadePlugin for VadeEvanSubstrate {
     /// Creates a new DID on substrate.
     ///
@@ -134,12 +129,12 @@ impl VadePlugin for VadeEvanSubstrate {
     /// * `options` - serialized [`IdentityArguments`](https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.IdentityArguments.html)
     /// * `payload` - no payload required, so can be left empty
     ///
-    async fn did_create(
+    fn did_create(
         &mut self,
         did_method: &str,
         options: &str,
         payload: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> VadeResult<VadePluginResultValue<Option<String>>> {
         if !did_method.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
@@ -161,8 +156,7 @@ impl VadePlugin for VadeEvanSubstrate {
                 "" => None,
                 _ => Some(payload),
             },
-        )
-        .await?;
+        );
 
         Ok(VadePluginResultValue::Success(Some(format!(
             "{}:{}",
@@ -183,18 +177,18 @@ impl VadePlugin for VadeEvanSubstrate {
     /// * `options` - serialized [`DidUpdateArguments`](https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.DidUpdateArguments.html)
     /// * `payload` - DID document to set or empty
     ///
-    async fn did_update(
+    fn did_update(
         &mut self,
         did: &str,
         options: &str,
         payload: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> VadeResult<VadePluginResultValue<Option<String>>> {
         if !did.starts_with(EVAN_METHOD_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
         let input: DidUpdateArguments = serde_json::from_str(&options)
             .map_err(|e| format!("{} when parsing {}", &e, &options))?;
-        let (method, substrate_identity) = convert_did_to_substrate_identity(&did).asyncify()?;
+        let (method, substrate_identity) = convert_did_to_substrate_identity(&did);
         let substrate_identity_vec = hex::decode(&substrate_identity)?;
         match input.operation.as_str() {
             "ensureWhitelisted" => {
@@ -204,15 +198,12 @@ impl VadePlugin for VadeEvanSubstrate {
                     input.private_key.clone(),
                     &self.config.signer,
                     substrate_identity_vec,
-                )
-                .await?;
+                );
                 // Execute whitelistIdentity operation
                 if !is_whitelisted {
                     let mut new_input: DidUpdateArguments = serde_json::from_str(&options)?;
                     new_input.operation = "whitelistIdentity".to_owned();
-                    Ok(self
-                        .did_update(did, &serde_json::to_string(&new_input)?, payload)
-                        .await?)
+                    Ok(self.did_update(did, &serde_json::to_string(&new_input)?, payload))
                 } else {
                     Ok(VadePluginResultValue::Success(None))
                 }
@@ -224,8 +215,7 @@ impl VadePlugin for VadeEvanSubstrate {
                     &self.config.signer,
                     method,
                     substrate_identity_vec,
-                )
-                .await?;
+                );
                 Ok(VadePluginResultValue::Success(None))
             }
             "setDidDocument" => {
@@ -233,14 +223,13 @@ impl VadePlugin for VadeEvanSubstrate {
                     return Ok(VadePluginResultValue::Ignored);
                 }
                 let (_, executing_did) =
-                    convert_did_to_substrate_identity(&input.identity).asyncify()?;
+                    convert_did_to_substrate_identity(&input.identity);
                 self.set_did_document(
                     &substrate_identity,
                     &input.private_key,
                     &executing_did,
                     payload,
-                )
-                .await?;
+                );
                 Ok(VadePluginResultValue::Success(None))
             }
             _ => Err(Box::from(format!(
@@ -255,15 +244,15 @@ impl VadePlugin for VadeEvanSubstrate {
     /// # Arguments
     ///
     /// * `did` - did to fetch data for
-    async fn did_resolve(
+    fn did_resolve(
         &mut self,
         did_id: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> VadeResult<VadePluginResultValue<Option<String>>> {
         if !did_id.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
-        let (_, substrate_identity) = convert_did_to_substrate_identity(&did_id).asyncify()?;
-        let did_result = get_did(self.config.target.clone(), substrate_identity).await?;
+        let (_, substrate_identity) = convert_did_to_substrate_identity(&did_id)?;
+        let did_result = get_did(self.config.target.clone(), substrate_identity);
         Ok(VadePluginResultValue::Success(Some(did_result)))
     }
 }

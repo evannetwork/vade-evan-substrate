@@ -14,13 +14,12 @@
   limitations under the License.
 */
 
-use async_trait::async_trait;
 use secp256k1::{sign, Message, SecretKey, Signature};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha3::Keccak256;
+use vade::VadeResult;
 use std::convert::TryInto;
-use vade::AsyncResult;
 
 const KEY_TYPE: &str = "identityKey";
 
@@ -47,13 +46,12 @@ struct RemoteSigningArguments {
     pub message: String,
 }
 
-#[async_trait]
 pub trait Signer {
-    async fn sign_message(
+    fn sign_message(
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])>;
+    ) -> VadeResult<([u8; 65], [u8; 32])>;
 }
 
 /// Signer for signing messages locally with a private key.
@@ -72,7 +70,6 @@ impl Default for LocalSigner {
     }
 }
 
-#[async_trait]
 impl Signer for LocalSigner {
     /// Signs a message using secp256k1.
     /// `message_to_sign` can be a string, that will be hashed with `Keccak256` before signing it
@@ -85,11 +82,11 @@ impl Signer for LocalSigner {
     /// # Returns
     /// `[u8; 65]` - Signature
     /// `[u8; 32]` - Hashed Message
-    async fn sign_message(
+    fn sign_message(
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])> {
+    ) -> VadeResult<([u8; 65], [u8; 32])> {
         let mut hash_arr = [0u8; 32];
 
         if message_to_sign.starts_with("0x") {
@@ -138,7 +135,6 @@ impl RemoteSigner {
     }
 }
 
-#[async_trait]
 impl Signer for RemoteSigner {
     /// Signs a message by using a remote endpoint.
     /// `message_to_sign` can be a string, that will be hashed with `Keccak256` before signing it
@@ -152,12 +148,12 @@ impl Signer for RemoteSigner {
     /// # Returns
     /// `[u8; 65]` - Signature
     /// `[u8; 32]` - Hashed Message
-    async fn sign_message(
+    fn sign_message(
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])> {
-        let client = reqwest::Client::new();
+    ) -> VadeResult<([u8; 65], [u8; 32])> {
+        let client = reqwest::blocking::Client::new();
         let body = RemoteSigningArguments {
             key: signing_key.to_string(),
             r#type: KEY_TYPE.to_string(),
@@ -167,14 +163,11 @@ impl Signer for RemoteSigner {
         let response = client
             .post(&self.signing_endpoint)
             .json(&body)
-            .send()
-            .await?;
+            .send()?;
         // fetch status and result body
-        let status = &response.status();
-        let response_text = response
-            .text()
-            .await
-            .or_else::<String, _>(|_| Ok(String::new()))?;
+        let status = response.status();
+        let response_text = response.text()?;
+            // .or_else::<String, _>(|_| Ok(String::new()))?;
         // return Err for invalid status codes,
         let parsed: RemoteSigningResult = match &status.is_success() {
             true => serde_json::from_str(&response_text).map_err(|e| {
