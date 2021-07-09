@@ -31,8 +31,9 @@
 //!
 //! ```rust
 //! use vade_evan_substrate::{
-//!     resolver::{ResolverConfig, VadeEvanSubstrate},
 //!     signing::{LocalSigner, Signer},
+//!     ResolverConfig,
+//!     VadeEvanSubstrate,
 //! };
 //! let signer: Box<dyn Signer> = Box::new(LocalSigner::new());
 //! let resolver = VadeEvanSubstrate::new(ResolverConfig {
