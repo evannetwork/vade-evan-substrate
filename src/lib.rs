@@ -31,11 +31,13 @@
 //!
 //! ```rust
 //! use vade_evan_substrate::{
+//!     ResolverConfig,
+//!     VadeEvanSubstrate,
 //!     signing::{LocalSigner, Signer},
 //!     ResolverConfig,
 //!     VadeEvanSubstrate,
 //! };
-//! let signer: Box<dyn Signer> = Box::new(LocalSigner::new());
+//! let signer: Box<dyn Signer + Send + Sync> = Box::new(LocalSigner::new());
 //! let resolver = VadeEvanSubstrate::new(ResolverConfig {
 //!     signer,
 //!     target: "127.0.0.1".to_string(),
