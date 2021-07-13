@@ -19,8 +19,7 @@ use secp256k1::{sign, Message, SecretKey, Signature};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use sha3::Keccak256;
-use std::convert::TryInto;
-use vade::AsyncResult;
+use std::{convert::TryInto, error::Error};
 
 const KEY_TYPE: &str = "identityKey";
 
@@ -47,13 +46,13 @@ struct RemoteSigningArguments {
     pub message: String,
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 pub trait Signer {
     async fn sign_message(
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])>;
+    ) -> Result<([u8; 65], [u8; 32]), Box<dyn Error>>;
 }
 
 /// Signer for signing messages locally with a private key.
@@ -72,7 +71,7 @@ impl Default for LocalSigner {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Signer for LocalSigner {
     /// Signs a message using secp256k1.
     /// `message_to_sign` can be a string, that will be hashed with `Keccak256` before signing it
@@ -89,7 +88,7 @@ impl Signer for LocalSigner {
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])> {
+    ) -> Result<([u8; 65], [u8; 32]), Box<dyn Error>> {
         let mut hash_arr = [0u8; 32];
 
         if message_to_sign.starts_with("0x") {
@@ -138,7 +137,7 @@ impl RemoteSigner {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Signer for RemoteSigner {
     /// Signs a message by using a remote endpoint.
     /// `message_to_sign` can be a string, that will be hashed with `Keccak256` before signing it
@@ -156,7 +155,7 @@ impl Signer for RemoteSigner {
         &self,
         message_to_sign: &str,
         signing_key: &str,
-    ) -> AsyncResult<([u8; 65], [u8; 32])> {
+    ) -> Result<([u8; 65], [u8; 32]), Box<dyn Error>> {
         let client = reqwest::Client::new();
         let body = RemoteSigningArguments {
             key: signing_key.to_string(),

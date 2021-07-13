@@ -31,7 +31,7 @@ use async_trait::async_trait;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use vade::{AsyncResult, ResultAsyncifier, VadePlugin, VadePluginResultValue};
+use vade::{VadePlugin, VadePluginResultValue};
 
 const EVAN_METHOD: &str = "did:evan";
 const EVAN_METHOD_PREFIX: &str = "did:evan:";
@@ -54,7 +54,7 @@ pub struct IdentityArguments {
 }
 
 pub struct ResolverConfig {
-    pub signer: Box<dyn Signer + Send + Sync>,
+    pub signer: Box<dyn Signer>,
     pub target: String,
 }
 
@@ -78,7 +78,7 @@ impl VadeEvanSubstrate {
         private_key: &str,
         identity: &str,
         payload: &str,
-    ) -> AsyncResult<Option<String>> {
+    ) -> Result<Option<String>, Box<dyn Error>> {
         debug!(
             "setting DID document for did: {}, identity; {}",
             &did, &identity
@@ -110,8 +110,12 @@ impl VadeEvanSubstrate {
         Ok(Some("".to_string()))
     }
 
-    pub async fn is_whitelisted(&self, did: &str, private_key: &str) -> AsyncResult<bool> {
-        let (_, substrate_identity) = convert_did_to_substrate_identity(&did).asyncify()?;
+    pub async fn is_whitelisted(
+        &self,
+        did: &str,
+        private_key: &str,
+    ) -> Result<bool, Box<dyn Error>> {
+        let (_, substrate_identity) = convert_did_to_substrate_identity(&did)?;
         let substrate_identity_vec = hex::decode(&substrate_identity)?;
         let result = is_whitelisted(
             self.config.target.clone(),
@@ -124,7 +128,7 @@ impl VadeEvanSubstrate {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl VadePlugin for VadeEvanSubstrate {
     /// Creates a new DID on substrate.
     ///
@@ -139,7 +143,7 @@ impl VadePlugin for VadeEvanSubstrate {
         did_method: &str,
         options: &str,
         payload: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
         if !did_method.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
@@ -188,13 +192,13 @@ impl VadePlugin for VadeEvanSubstrate {
         did: &str,
         options: &str,
         payload: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
         if !did.starts_with(EVAN_METHOD_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
         let input: DidUpdateArguments = serde_json::from_str(&options)
             .map_err(|e| format!("{} when parsing {}", &e, &options))?;
-        let (method, substrate_identity) = convert_did_to_substrate_identity(&did).asyncify()?;
+        let (method, substrate_identity) = convert_did_to_substrate_identity(&did)?;
         let substrate_identity_vec = hex::decode(&substrate_identity)?;
         match input.operation.as_str() {
             "ensureWhitelisted" => {
@@ -232,8 +236,7 @@ impl VadePlugin for VadeEvanSubstrate {
                 if !did.starts_with(EVAN_METHOD) {
                     return Ok(VadePluginResultValue::Ignored);
                 }
-                let (_, executing_did) =
-                    convert_did_to_substrate_identity(&input.identity).asyncify()?;
+                let (_, executing_did) = convert_did_to_substrate_identity(&input.identity)?;
                 self.set_did_document(
                     &substrate_identity,
                     &input.private_key,
@@ -258,11 +261,11 @@ impl VadePlugin for VadeEvanSubstrate {
     async fn did_resolve(
         &mut self,
         did_id: &str,
-    ) -> AsyncResult<VadePluginResultValue<Option<String>>> {
+    ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
         if !did_id.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
-        let (_, substrate_identity) = convert_did_to_substrate_identity(&did_id).asyncify()?;
+        let (_, substrate_identity) = convert_did_to_substrate_identity(&did_id)?;
         let did_result = get_did(self.config.target.clone(), substrate_identity).await?;
         Ok(VadePluginResultValue::Success(Some(did_result)))
     }
