@@ -50,11 +50,15 @@ use std::{
     env,
     error::Error,
     hash::Hasher,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
+#[cfg(target_arch = "wasm32")]
+use instant::Instant;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 const SUBSTRATE_TIMEOUT: u64 = 60;
 
@@ -1036,16 +1040,15 @@ fn get_nonce() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::signing::{LocalSigner, Signer};
     use regex::Regex;
     use std::{env, error::Error, sync::Once};
-    use crate::signing::{LocalSigner, Signer};
 
     static INIT: Once = Once::new();
 
     const METHOD_REGEX: &str = r#"^(.*):0x(.*)$"#;
 
-    const SIGNER_1_DID: &str =
-        "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
+    const SIGNER_1_DID: &str = "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
     const SIGNER_1_PRIVATE_KEY: &str =
         "dfcdcb6d5d09411ae9cbe1b0fd9751ba8803dd4b276d5bf9488ae4ede2669106";
     const DEFAULT_VADE_EVAN_SUBSTRATE_IP: &str = "13.69.59.185";
