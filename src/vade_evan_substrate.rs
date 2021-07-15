@@ -169,7 +169,7 @@ impl VadePlugin for VadeEvanSubstrate {
         .await?;
 
         Ok(VadePluginResultValue::Success(Some(format!(
-            "{}:{}",
+            "\"{}:{}\"",
             &did_method, &inner_result
         ))))
     }
