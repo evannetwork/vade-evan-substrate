@@ -51,6 +51,7 @@ ws = { version = "0.7", features = [] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
 console_log = { version = "0.2", features = ["color"] }
+instant = { version = "0.1", features = ["inaccurate", "wasm-bindgen"] }
 js-sys = { version = "0.3" }
 serde_derive = "1.0.114"
 wasm-bindgen = { version = "0.2",features = ["serde-serialize"] }

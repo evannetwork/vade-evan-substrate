@@ -108,6 +108,9 @@
 #[macro_use]
 pub extern crate log;
 
+#[cfg(target_arch = "wasm32")]
+extern crate instant;
+
 // --------- mod
 pub mod signing;
 mod utils;
