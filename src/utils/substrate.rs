@@ -47,7 +47,6 @@ use sha3::Keccak256;
 use sp_std::prelude::*;
 use std::{
     convert::{TryFrom, TryInto},
-    env,
     error::Error,
     hash::Hasher,
     time::Duration,
@@ -78,7 +77,7 @@ pub async fn get_storage_map<K: Encode + std::fmt::Debug, V: Decode + Clone>(
     let json = json_req("state_getStorage", &hex_string.to_string(), 1);
     let client = reqwest::Client::new();
     let body = client
-        .post(&format!("http://{}:9933", url).to_string())
+        .post(&format!("https://{}/rpc", url).to_string())
         .header("Content-Type", "application/json")
         .body(json.to_string())
         .send()
@@ -118,7 +117,7 @@ pub async fn get_metadata(url: &str) -> Result<Metadata, Box<dyn Error>> {
     });
     let client = reqwest::Client::new();
     let body = client
-        .post(&format!("http://{}:9933", url).to_string())
+        .post(&format!("https://{}/rpc", url).to_string())
         .header("Content-Type", "application/json")
         .body(json.to_string())
         .send()
@@ -153,7 +152,7 @@ pub async fn send_extrinsic(
     match exit_on {
         XtStatus::Finalized => {
             start_rpc_client_thread(
-                format!("ws://{}:9944", url),
+                format!("wss://{}/ws", url),
                 json.to_string(),
                 sender,
                 on_extrinsic_msg_until_finalized,
@@ -166,7 +165,7 @@ pub async fn send_extrinsic(
         XtStatus::InBlock => {
             let metadata = get_metadata(url).await?;
             start_rpc_client_thread(
-                format!("ws://{}:9944", url),
+                format!("wss://{}/ws", url),
                 json.to_string(),
                 sender,
                 on_extrinsic_msg_until_in_block,
@@ -177,7 +176,7 @@ pub async fn send_extrinsic(
                 let json = json_req("chain_getBlock", data.as_str(), 1);
                 let client = reqwest::Client::new();
                 let body = client
-                    .post(&format!("http://{}:9933", url).to_string())
+                    .post(&format!("https://{}/rpc", url).to_string())
                     .header("Content-Type", "application/json")
                     .body(json.to_string())
                     .send()
@@ -233,7 +232,7 @@ pub async fn send_extrinsic(
         }
         XtStatus::Broadcast => {
             start_rpc_client_thread(
-                format!("ws://{}:9944", url),
+                format!("wss://{}/ws", url),
                 json.to_string(),
                 sender,
                 on_extrinsic_msg_until_broadcast,
@@ -245,7 +244,7 @@ pub async fn send_extrinsic(
         }
         XtStatus::Ready => {
             start_rpc_client_thread(
-                format!("ws://{}:9944", url),
+                format!("wss://{}/ws", url),
                 json.to_string(),
                 sender,
                 on_extrinsic_msg_until_ready,
@@ -270,7 +269,7 @@ pub async fn subscribe_events(url: &str, sender: Sender<String>) {
         "id": "1",
     });
     start_rpc_client_thread(
-        format!("ws://{}:9944", url),
+        format!("wss://{}/ws", url),
         jsonreq.to_string(),
         sender,
         on_subscription_msg,
@@ -580,9 +579,8 @@ pub async fn get_did(url: String, did: String) -> Result<String, Box<dyn Error>>
     .await?
     .ok_or("DID not found")?;
     let did_url = format!(
-        "http://{}:{}/ipfs/{}",
+        "https://{}/ipfs/{}",
         url,
-        env::var("VADE_EVAN_IPFS_PORT").unwrap_or_else(|_| "8081".to_string()),
         std::str::from_utf8(&detail_hash)?
     )
     .to_string();
@@ -1051,7 +1049,7 @@ mod tests {
     const SIGNER_1_DID: &str = "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
     const SIGNER_1_PRIVATE_KEY: &str =
         "dfcdcb6d5d09411ae9cbe1b0fd9751ba8803dd4b276d5bf9488ae4ede2669106";
-    const DEFAULT_VADE_EVAN_SUBSTRATE_IP: &str = "13.69.59.185";
+    const DEFAULT_VADE_EVAN_SUBSTRATE_IP: &str = "substrate-dev.trust-trace.com";
 
     fn convert_did_to_substrate_did(did: &str) -> Result<(u8, String), Box<dyn Error>> {
         let re = Regex::new(METHOD_REGEX)?;
