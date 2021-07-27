@@ -17,11 +17,7 @@
 use crate::utils::extrinsic::node_metadata::{EventArg, Metadata, MetadataError};
 use parity_scale_codec::{Codec, Compact, Decode, Encode, Error as CodecError, Input, Output};
 pub use sp_core::H256 as Hash;
-use std::{
-    collections::{HashMap, HashSet},
-    convert::TryFrom,
-    marker::Send,
-};
+use std::{collections::HashMap, convert::TryFrom, marker::Send};
 
 /// Event for the System module.
 #[derive(Clone, Debug, Decode)]
@@ -140,7 +136,6 @@ pub enum EventsError {
 pub struct EventsDecoder {
     metadata: Metadata,
     type_sizes: HashMap<String, usize>,
-    // marker: PhantomData<fn() -> T>,
 }
 
 impl TryFrom<Metadata> for EventsDecoder {
@@ -150,7 +145,6 @@ impl TryFrom<Metadata> for EventsDecoder {
         let mut decoder = Self {
             metadata,
             type_sizes: HashMap::new(),
-            // marker: PhantomData,
         };
         // register default event arg type sizes for dynamic decoding of events
         decoder.register_type_size::<bool>("bool")?;
@@ -167,11 +161,7 @@ impl TryFrom<Metadata> for EventsDecoder {
         decoder.register_type_size::<u32>("AuthorityIndex")?;
         decoder.register_type_size::<u64>("AuthorityWeight")?;
         decoder.register_type_size::<u32>("MemberCount")?;
-        //decoder.register_type_size::<crate::AccountId>("AccountId")?;
-        //decoder.register_type_size::<crate::BlockNumber>("BlockNumber")?;
-        //decoder.register_type_size::<crate::Moment>("Moment")?;
         decoder.register_type_size::<Hash>("Hash")?;
-        //decoder.register_type_size::<crate::Balance>("Balance")?;
         // VoteThreshold enum index
         decoder.register_type_size::<u8>("VoteThreshold")?;
 
@@ -190,36 +180,6 @@ impl EventsDecoder {
             Ok(size)
         } else {
             Err(EventsError::TypeSizeUnavailable(name.to_owned()))
-        }
-    }
-
-    pub fn check_missing_type_sizes(&self) {
-        let mut missing = HashSet::new();
-        for module in self.metadata.modules_with_events() {
-            for event in module.events() {
-                for arg in event.arguments() {
-                    for primitive in arg.primitives() {
-                        if module.name() != "System"
-                            && !self.type_sizes.contains_key(&primitive)
-                            && !primitive.contains("PhantomData")
-                        {
-                            missing.insert(format!(
-                                "{}::{}::{}",
-                                module.name(),
-                                event.name,
-                                primitive
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-        if !missing.is_empty() {
-            warn!(
-                "The following primitive types do not have registered sizes: {:?} \
-                If any of these events are received, an error will occur since we cannot decode them",
-                missing
-            );
         }
     }
 

@@ -16,17 +16,16 @@
 
 extern crate regex;
 extern crate vade;
-use crate::{
-    signing::Signer,
-    utils::substrate::{
-        add_payload_to_did,
-        create_did,
-        get_did,
-        get_payload_count_for_did,
-        is_whitelisted,
-        update_payload_in_did,
-        whitelist_identity,
-    },
+
+use crate::signing::Signer;
+use crate::utils::substrate::{
+    add_payload_to_did,
+    create_did,
+    get_did,
+    get_payload_count_for_did,
+    is_whitelisted,
+    update_payload_in_did,
+    whitelist_identity,
 };
 use async_trait::async_trait;
 use regex::Regex;
@@ -60,17 +59,17 @@ pub struct ResolverConfig {
 }
 
 /// Resolver for DIDs on the Trust&Trace substrate chain
-pub struct SubstrateDidResolverEvan {
+pub struct VadeEvanSubstrate {
     config: ResolverConfig,
 }
 
-impl SubstrateDidResolverEvan {
-    /// Creates new instance of `SubstrateDidResolverEvan`.
-    pub fn new(config: ResolverConfig) -> SubstrateDidResolverEvan {
+impl VadeEvanSubstrate {
+    /// Creates new instance of `VadeEvanSubstrate`.
+    pub fn new(config: ResolverConfig) -> VadeEvanSubstrate {
         match env_logger::try_init() {
             Ok(_) | Err(_) => (),
         };
-        SubstrateDidResolverEvan { config }
+        VadeEvanSubstrate { config }
     }
 
     async fn set_did_document(
@@ -130,13 +129,13 @@ impl SubstrateDidResolverEvan {
 }
 
 #[async_trait(?Send)]
-impl VadePlugin for SubstrateDidResolverEvan {
+impl VadePlugin for VadeEvanSubstrate {
     /// Creates a new DID on substrate.
     ///
     /// # Arguments
     ///
     /// * `did_method` - did method to cater to, usually "did:evan"
-    /// * `options` - serialized [`IdentityArguments`](https://docs.rs/vade_evan/*/vade_evan/resolver/struct.IdentityArguments.html)
+    /// * `options` - serialized [`IdentityArguments`](https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.IdentityArguments.html)
     /// * `payload` - no payload required, so can be left empty
     ///
     async fn did_create(
@@ -170,7 +169,7 @@ impl VadePlugin for SubstrateDidResolverEvan {
         .await?;
 
         Ok(VadePluginResultValue::Success(Some(format!(
-            "{}:{}",
+            "\"{}:{}\"",
             &did_method, &inner_result
         ))))
     }
@@ -185,7 +184,7 @@ impl VadePlugin for SubstrateDidResolverEvan {
     /// # Arguments
     ///
     /// * `did` - DID to update data for
-    /// * `options` - serialized [`DidUpdateArguments`](https://docs.rs/vade_evan/*/vade_evan/resolver/struct.DidUpdateArguments.html)
+    /// * `options` - serialized [`DidUpdateArguments`](https://docs.rs/vade_evan_substrate/*/vade_evan_substrate/vade_evan_substrate/struct.DidUpdateArguments.html)
     /// * `payload` - DID document to set or empty
     ///
     async fn did_update(

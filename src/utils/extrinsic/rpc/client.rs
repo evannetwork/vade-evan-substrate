@@ -63,16 +63,6 @@ impl Handler for RpcClient {
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> Result<()> {
-    let retstr = msg.as_text()?;
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(retstr) {
-        result.clone().try_send(value["result"].to_string()).ok(); // ignore errors, will be closed afterwards
-    };
-
-    out.close(CloseCode::Normal)?;
-    Ok(())
-}
-#[cfg(not(target_arch = "wasm32"))]
 pub fn on_subscription_msg(msg: Message, _out: Sender, result: ThreadOut<String>) -> Result<()> {
     let retstr = msg.as_text()?;
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(retstr) {
@@ -182,19 +172,6 @@ fn end_process(out: Sender, result: ThreadOut<String>, value: Option<String>) {
 }
 
 // WASM implementation
-
-#[cfg(target_arch = "wasm32")]
-pub fn on_get_request_msg(
-    msg: &str,
-    out: &WebSocket,
-    result: ThreadOut<String>,
-) -> Result<(), Box<dyn Error>> {
-    let value: serde_json::Value = serde_json::from_str(msg)?;
-
-    result.clone().try_send(value["result"].to_string())?;
-    out.close_with_code(1000).ok();
-    Ok(())
-}
 
 #[cfg(target_arch = "wasm32")]
 pub fn on_subscription_msg(

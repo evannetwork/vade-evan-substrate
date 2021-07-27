@@ -35,6 +35,7 @@ pub const META_RESERVED: u32 = 0x6174656d; // 'meta' warn endianness
 /// The user needs to make sure that both types use the same encoding.
 ///
 /// For example a `&'static [ &'static str ]` can be decoded to a `Vec<String>`.
+#[allow(dead_code)]
 #[derive(Clone)]
 pub enum DecodeDifferent<B, O>
 where
@@ -391,9 +392,6 @@ pub struct RuntimeMetadataV11 {
     pub extrinsic: ExtrinsicMetadata,
 }
 
-/// The latest version of the metadata.
-pub type RuntimeMetadataLastVersion = RuntimeMetadataV11;
-
 /// All metadata about an runtime module.
 #[derive(Clone, PartialEq, Eq, Encode, Decode, Serialize)]
 pub struct ModuleMetadata {
@@ -407,15 +405,3 @@ pub struct ModuleMetadata {
 
 type ODFnA<T> = Option<DFnA<T>>;
 type DFnA<T> = DecodeDifferent<FnEncode<&'static [T]>, Vec<T>>;
-
-/*impl Into<sp_core::OpaqueMetadata> for RuntimeMetadataPrefixed {
-   fn into(self) -> sp_core::OpaqueMetadata {
-       sp_core::OpaqueMetadata::new(self.encode())
-   }
-}*/
-
-/*impl Into<RuntimeMetadataPrefixed> for RuntimeMetadataLastVersion {
-   fn into(self) -> RuntimeMetadataPrefixed {
-       RuntimeMetadataPrefixed(META_RESERVED, RuntimeMetadata::V11(self))
-   }
-}*/

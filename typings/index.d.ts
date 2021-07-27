@@ -14,9 +14,4 @@
   limitations under the License.
 */
 
-extern crate ursa;
-
-pub mod datatypes;
-pub mod issuer;
-pub mod prover;
-pub mod verifier;
+export * from './vade_evan_substsrate';
