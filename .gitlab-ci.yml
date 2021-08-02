@@ -12,7 +12,7 @@ build:
     - cd ..
     - rm -rf vade
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN_VADE}@git.slock.it/equs/interop/vade/vade.git --branch develop
-    - cd vade-evan
+    - cd vade-evan-substrate
     - cargo build --release --verbose
   artifacts:
     paths:
