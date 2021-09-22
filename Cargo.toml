@@ -42,7 +42,7 @@ sp-std = { version = "2.0.0-rc4", default-features = false }
 sp-storage = { version = "2.0.0-rc4", default-features = false }
 thiserror = { version = "1.0" }
 twox-hash = { version = "1.5.0" }
-vade = { git = "ssh://git@git.slock.it/equs/interop/vade/vade.git", branch = "develop", version = "0.1.0" }
+vade = { git = "https://git.slock.it/equs/interop/vade/vade.git", branch = "develop", version = "0.1.0" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 chrono = { version = "0.4.11",  default-features = false, features=["wasm-bindgen", "clock", "js-sys"] }
