@@ -200,6 +200,7 @@ impl VadePlugin for VadeEvanSubstrate {
             .map_err(|e| format!("{} when parsing {}", &e, &options))?;
         let (method, substrate_identity) = convert_did_to_substrate_identity(&did)?;
         let substrate_identity_vec = hex::decode(&substrate_identity)?;
+
         match input.operation.as_str() {
             "ensureWhitelisted" => {
                 // Check if identity is whitelisted
@@ -265,7 +266,11 @@ impl VadePlugin for VadeEvanSubstrate {
         if !did_id.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
-        let (_, substrate_identity) = convert_did_to_substrate_identity(&did_id)?;
+        let identity_did = convert_did_to_substrate_identity(&did_id);
+        if identity_did.is_err() {
+            return Ok(VadePluginResultValue::Ignored);
+        }
+        let (_, substrate_identity) = identity_did?;
         let did_result = get_did(self.config.target.clone(), substrate_identity).await?;
         Ok(VadePluginResultValue::Success(Some(did_result)))
     }

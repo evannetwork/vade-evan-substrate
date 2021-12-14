@@ -5,6 +5,7 @@
 ### Features
 
 ### Fixes
+- only allow did document resolval from 0x dids
 
 ### Deprecations
 
