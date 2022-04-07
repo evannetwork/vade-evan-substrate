@@ -3,6 +3,7 @@
 ## Next Version
 
 ### Features
+
 - Add type options to did_create and did_update
 
 ### Fixes
