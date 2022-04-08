@@ -18,9 +18,11 @@ export interface DidUpdateArguments {
   privateKey: string;
   identity: string;
   operation: string;
+  type: string;
 }
 
 export interface IdentityArguments {
   privateKey: string;
   identity: string;
+  type: string;
 }
