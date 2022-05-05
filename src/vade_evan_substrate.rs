@@ -35,8 +35,25 @@ use vade::{VadePlugin, VadePluginResultValue};
 
 const EVAN_METHOD: &str = "did:evan";
 const EVAN_METHOD_PREFIX: &str = "did:evan:";
-
+const DID_SUBSTRATE: &str = "substrate";
 const METHOD_REGEX: &str = r#"^(.*):0x(.*)$"#;
+
+macro_rules! parse {
+    ($data:expr, $type_name:expr) => {{
+        serde_json::from_str($data)
+            .map_err(|e| format!("{} when parsing {} {}", &e, $type_name, $data))?
+    }};
+}
+
+macro_rules! ignore_unrelated {
+    ($options:expr) => {{
+        let type_options: TypeOptions = parse!($options, "options");
+        match type_options.r#type.as_deref() {
+            Some(DID_SUBSTRATE) => (),
+            _ => return Ok(VadePluginResultValue::Ignored),
+        };
+    }};
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,6 +73,13 @@ pub struct IdentityArguments {
 pub struct ResolverConfig {
     pub signer: Box<dyn Signer>,
     pub target: String,
+}
+
+/// Message passed to vade containing the desired did implementation.
+/// Does not perform action if type does not indicate did type.
+#[derive(Serialize, Deserialize)]
+pub struct TypeOptions {
+    pub r#type: Option<String>,
 }
 
 /// Resolver for DIDs on the Trust&Trace substrate chain
@@ -144,6 +168,8 @@ impl VadePlugin for VadeEvanSubstrate {
         options: &str,
         payload: &str,
     ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
+        ignore_unrelated!(options);
+
         if !did_method.starts_with(EVAN_METHOD) {
             return Ok(VadePluginResultValue::Ignored);
         }
@@ -193,6 +219,8 @@ impl VadePlugin for VadeEvanSubstrate {
         options: &str,
         payload: &str,
     ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
+        ignore_unrelated!(options);
+        
         if !did.starts_with(EVAN_METHOD_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
