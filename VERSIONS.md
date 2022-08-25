@@ -10,6 +10,8 @@
 
 ### Deprecations
 
+- move signing logic into `vade-signer`
+
 ## v0.1.3
 
 ### Fixes
