@@ -4,9 +4,15 @@
 
 ### Features
 
-- Add type options to did_create and did_update
-
 ### Fixes
+
+### Deprecations
+
+## v0.2.0
+
+### Features
+
+- Add type options to did_create and did_update
 
 ### Deprecations
 
