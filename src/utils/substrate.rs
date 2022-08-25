@@ -14,25 +14,22 @@
   limitations under the License.
 */
 
-use crate::{
-    signing::Signer,
-    utils::extrinsic::{
-        events::{DispatchError, EventsDecoder, Phase, RawEvent, RuntimeEvent, SystemEvent},
-        frame_metadata::RuntimeMetadataPrefixed,
-        node_metadata::Metadata,
-        rpc::{
-            client::{
-                on_extrinsic_msg_until_broadcast,
-                on_extrinsic_msg_until_finalized,
-                on_extrinsic_msg_until_in_block,
-                on_extrinsic_msg_until_ready,
-                on_subscription_msg,
-            },
-            start_rpc_client_thread,
-            XtStatus,
+use crate::utils::extrinsic::{
+    events::{DispatchError, EventsDecoder, Phase, RawEvent, RuntimeEvent, SystemEvent},
+    frame_metadata::RuntimeMetadataPrefixed,
+    node_metadata::Metadata,
+    rpc::{
+        client::{
+            on_extrinsic_msg_until_broadcast,
+            on_extrinsic_msg_until_finalized,
+            on_extrinsic_msg_until_in_block,
+            on_extrinsic_msg_until_ready,
+            on_subscription_msg,
         },
-        xt_primitives,
+        start_rpc_client_thread,
+        XtStatus,
     },
+    xt_primitives,
 };
 use futures::{
     channel::mpsc::{channel, Receiver, Sender},
@@ -51,6 +48,7 @@ use std::{
     hash::Hasher,
     time::Duration,
 };
+use vade_signer::Signer;
 
 #[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
@@ -1038,9 +1036,9 @@ fn get_nonce() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signing::{LocalSigner, Signer};
     use regex::Regex;
     use std::{env, error::Error, sync::Once};
+    use vade_signer::{LocalSigner, Signer};
 
     static INIT: Once = Once::new();
 

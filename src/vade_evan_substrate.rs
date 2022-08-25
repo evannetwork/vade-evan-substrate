@@ -17,7 +17,6 @@
 extern crate regex;
 extern crate vade;
 
-use crate::signing::Signer;
 use crate::utils::substrate::{
     add_payload_to_did,
     create_did,
@@ -32,6 +31,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use vade::{VadePlugin, VadePluginResultValue};
+use vade_signer::Signer;
 
 const EVAN_METHOD: &str = "did:evan";
 const EVAN_METHOD_PREFIX: &str = "did:evan:";
@@ -220,7 +220,7 @@ impl VadePlugin for VadeEvanSubstrate {
         payload: &str,
     ) -> Result<VadePluginResultValue<Option<String>>, Box<dyn Error>> {
         ignore_unrelated!(options);
-        
+
         if !did.starts_with(EVAN_METHOD_PREFIX) {
             return Ok(VadePluginResultValue::Ignored);
         }
