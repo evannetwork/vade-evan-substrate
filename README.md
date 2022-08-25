@@ -22,10 +22,8 @@ Supports creating, updating and getting DIDs and DID documents on substrate, the
 As the did resolver instance needs to sign its requests against substrate, a remote endpoint for signing has to be provided. The DID resolver will sign requests for [`did_create`] and [`did_update`]. A signing endpoint has to be passed with the config argument in the constructor, e.g.:
 
 ```rust
-use vade_evan_substrate::{
-    resolver::{ResolverConfig, VadeEvanSubstrate},
-    signing::{LocalSigner, Signer},
-};
+use vade_evan_substrate::{ResolverConfig, VadeEvanSubstrate};
+use vade_signer::{LocalSigner, Signer},
 let signer: Box<dyn Signer> = Box::new(LocalSigner::new());
 let resolver = VadeEvanSubstrate::new(ResolverConfig {
     signer,
@@ -33,7 +31,7 @@ let resolver = VadeEvanSubstrate::new(ResolverConfig {
 });
 ```
 
-`signing_url` will be called with a POST request. The messages that should be signed is passed to the server alongside a reference to a key like this:
+When signing remotely, `signing_url` will be called with a POST request. The messages that should be signed is passed to the server alongside a reference to a key like this:
 
 ```json
 {

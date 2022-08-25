@@ -1872,11 +1872,30 @@ dependencies = [
  "tokio",
  "twox-hash",
  "vade",
+ "vade-signer",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
  "ws",
+]
+
+[[package]]
+name = "vade-signer"
+version = "0.0.1"
+source = "git+https://github.com/evannetwork/vade-signer.git?branch=feature/add-initial-structure#449396bf9f30e87f2092217a289fd970080099ff"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "hex",
+ "libsecp256k1",
+ "log",
+ "rand 0.7.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
