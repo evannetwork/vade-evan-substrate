@@ -1,5 +1,9 @@
 {
-  "name": "vade-evan-substrate-typings",
+  "name": "@evan.network/vade-evan-substrate-typings",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Blockchains Inc",
   "version": "0.0.1",
   "description": "typescript types for vade-evan-substrate",
   "types": "./dist/src/index.d.ts"
