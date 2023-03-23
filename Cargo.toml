@@ -1,7 +1,7 @@
 [package]
 name = "vade-evan-substrate"
 version = "0.2.0"
-authors = ["evan GmbH"]
+authors = ["evan GmbH", "Blockchains Inc."]
 edition = "2018"
 license-file = "LICENSE.txt"
 description = "substrate based DID and DID document handling plugin for vade"
