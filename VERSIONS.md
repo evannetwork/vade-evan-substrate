@@ -14,6 +14,10 @@
 
 - Add type options to did_create and did_update
 
+### Fixes
+
+- update dependencies for critical vulnerabilities
+
 ### Deprecations
 
 - move signing logic into `vade-signer`
