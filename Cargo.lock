@@ -2225,7 +2225,7 @@ dependencies = [
 [[package]]
 name = "vade-signer"
 version = "0.0.2"
-source = "git+https://github.com/evannetwork/vade-signer.git?branch=feature/fix-critical-dependency-updates#bfe4c92b035998612abdbc2c8e4cba1ae3c0d2e0"
+source = "git+https://github.com/evannetwork/vade-signer.git?branch=develop#18ff5c6a2b08974e52748e3b34351e8ba53eb7c9"
 dependencies = [
  "async-trait",
  "byteorder",
