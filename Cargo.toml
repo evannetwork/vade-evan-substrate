@@ -36,7 +36,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.53", features = ["preserve_order", "raw_value"] }
 sha2 = "0.8.1"
 sha3 = "0.8.2"
-sp-core = { version = "2.0.0-rc4", default-features = false }
+sp-core = { version = "21.0.0", default-features = false }
 sp-runtime-interface = { version = "2.0.0-rc4", default-features = false, features = ["disable_target_static_assertions" ]}
 sp-std = { version = "2.0.0-rc4", default-features = false }
 sp-storage = { version = "2.0.0-rc4", default-features = false }
